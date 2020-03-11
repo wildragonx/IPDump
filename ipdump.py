@@ -28,7 +28,6 @@ import sys
 import socket
 import ssl
 import threading
-import io
 import os
 from concurrent.futures import ThreadPoolExecutor
 
@@ -43,14 +42,14 @@ class Logger:
 	COLOR_INFO: str = "\033[93m"
 
 
-	def __init__(self, enabled: bool=True, color: bool=True):
+	def __init__(self, enabled=True, color=True):
 		"""
 		Creates a new instance
 		"""
-		self.enabled: bool = enabled
-		self.color: bool = color
+		self.enabled = enabled
+		self.color = color
 
-	def success(self, msg: str) -> None:
+	def success(self, msg):
 		"""
 		Logs a success message
 		"""
@@ -60,7 +59,7 @@ class Logger:
 			else:
 				print("[*] {}".format(msg))
 
-	def info(self, msg: str) -> None:
+	def info(self, msg):
 		"""
 		Logs a information message
 		"""
@@ -70,7 +69,7 @@ class Logger:
 			else:
 				print("[*] {}".format(msg))
 
-	def error(self, msg: str) -> None:
+	def error(self, msg):
 		"""
 		Logs a error message
 		"""
@@ -80,7 +79,7 @@ class Logger:
 			else:
 				print("[*] {}".format(msg))
 
-	def no_status(self, msg: str) -> None:
+	def no_status(self, msg):
 		"""
 		Logs a message with no status icon
 		"""
@@ -92,7 +91,7 @@ class PortInfo:
 	Stores information about a specific port
 	"""
 
-	def __init__(self, port: int, service_name: str, service_transport: str, service_desc: str):
+	def __init__(self, port, service_name, service_transport, service_desc):
 		self.port = port
 		self.service_name = service_name
 		self.service_transport = service_transport
@@ -103,31 +102,31 @@ class Dumper:
 	Gathers information via APIs and portscanning about a given IP Address, Web Address or Domain
 	"""
 
-	def __init__(self, target: str):
+	def __init__(self, target):
 		"""
 		Creates a new instance
 		"""
-		self.target: str = target
-		self.logger: Logger = Logger(enabled=False, color=True)
+		self.target = target
+		self.logger = Logger(enabled=False, color=True)
 
-	def attach_logger(self, logger: Logger):
+	def attach_logger(self, logger):
 		"""
 		Attaches a logger to the dumper. This directly outputs to stdout
 		"""
 		self.logger = logger		
 
-	def get_ip_info(self) -> dict:
+	def get_ip_info(self):
 		"""
 		Retrieve the information about the IP address from ip-api.com
 		"""
-		base_url: str = "http://ip-api.com/json/"
-		url_params: str = "?fields=status,message,continent,continentCode,country,countryCode,region,regionName,city,district,zip,lat,lon,timezone,currency,isp,org,as,asname,reverse,mobile,proxy,query"
+		base_url = "http://ip-api.com/json/"
+		url_params = "?fields=status,message,continent,continentCode,country,countryCode,region,regionName,city,district,zip,lat,lon,timezone,currency,isp,org,as,asname,reverse,mobile,proxy,query"
 		self.logger.info("Requesting information from {}".format(base_url))
-		response: requests.Response = requests.get(base_url + str(self.target) + url_params)
+		response = requests.get(base_url + str(self.target) + url_params)
 		if response.status_code != 200:
 			self.logger.error("Unable to connect to {} (Code {})".format(base_url, response.status_code))
 		else:
-			response_json: dict(str, str) = response.json()
+			response_json = response.json()
 			if response_json["status"] == "success":
 				self.logger.success("Response from {}:".format(base_url))
 				return response.json()
@@ -135,12 +134,12 @@ class Dumper:
 				self.logger.error("Unable to fetch information from {} (Reason: {})".format(base_url, response_json["message"]))
 		return dict()
 
-	def get_ssl_info(self, timeout: int=5) -> dict:
+	def get_ssl_info(self, timeout=5):
 		"""
 		Retrieve the SSL certificate from the host
 		"""
-		ctx: ssl.SSLContext = ssl.create_default_context()
-		s: ssl.SSLSocket = ctx.wrap_socket(socket.socket(), server_hostname=str(self.target))
+		ctx = ssl.create_default_context()
+		s = ctx.wrap_socket(socket.socket(), server_hostname=str(self.target))
 		s.settimeout(timeout)
 		try:
 			s.connect((str(self.target), 443))
@@ -148,18 +147,18 @@ class Dumper:
 			self.logger.error("Unable to connect to {} (Reason: {})".format(str(self.target), e))
 			return dict()
 
-		cert: ssl.SSLObject = s.getpeercert()
+		cert = s.getpeercert()
 		s.close()
 		self.logger.success("Certificate: ")
 		return dict(cert)
 
-	def get_whois_info(self, timeout: int=5) -> str:
+	def get_whois_info(self, timeout=5):
 		"""
 		Retrieve the whois information for the targetfrom whois.arin.net
 		"""
-		base_url: str = "whois.arin.net"
+		base_url = "whois.arin.net"
 		self.logger.info("Sending whois query to {}".format(base_url))
-		s: socket.socket 
+		s = None
 		try:
 			s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 			s.connect((base_url, 43))
@@ -168,7 +167,7 @@ class Dumper:
 			s.close()
 			return ""
 		
-		host_address: str
+		host_address = ""
 		try:
 			host_address = socket.gethostbyname(self.target)
 		except Exception as e:
@@ -177,9 +176,9 @@ class Dumper:
 			return ""
 
 		s.send((host_address + "\r\n").encode())
-		response: bytearray = b""
+		response = b""
 		while True:
-			data: bytearray = s.recv(4096)
+			data = s.recv(4096)
 			response += data
 			if not data:
 				break
@@ -188,20 +187,20 @@ class Dumper:
 		self.logger.success("Response from {}:".format(base_url))
 		return response.decode()
 
-	def __check_port(self, port_no: int, callback, timeout: int=5) -> None:
+	def __check_port(self, port_no, callback, timeout=5):
 		"""
 		Tests if the given port is open on the target, if it is, the callback function is executed with one argument of type PortInfo
 		"""
-		s: socket.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		s.settimeout(timeout)
 		try:
-			con: socket.socket = s.connect((self.target, port_no))
+			con = s.connect((self.target, port_no))
 			try:
-				service_info: list(str) = find_service(port_no)
-				port: str = str(port_no)
-				service_name: str = service_info[0]
-				service_transport: str = service_info[2]
-				service_desc: str = service_info[3]
+				service_info = find_service(port_no)
+				port = str(port_no)
+				service_name = service_info[0]
+				service_transport = service_info[2]
+				service_desc = service_info[3]
 				callback(PortInfo(port, service_name, service_transport, service_desc))
 			except Exception as e:
 				self.logger.error("Unable to scan port {} (Reason: {})".format(str(port_no), e))
@@ -209,7 +208,7 @@ class Dumper:
 		except Exception as e:
 			pass
 
-	def get_open_ports(self, callback, workers: int=100, start: int=1, end: int=1000, timeout: int=5) -> None:
+	def get_open_ports(self, callback, workers=100, start=1, end=1000, timeout=5):
 		"""
 		Gets the open ports running on the target and prints them as a table.
 		"""
@@ -225,7 +224,7 @@ class Dumper:
 		self.logger.success("Portscan finished")
 
 
-def print_dict(d: dict) -> None:
+def print_dict(d):
 	"""
 	Prints the given dictionary in key-value pairs
 	"""
@@ -233,15 +232,15 @@ def print_dict(d: dict) -> None:
 		print("%-20s: %s" % (k, v))
 
 
-def find_service(port_no: int) -> list:
+def find_service(port_no):
 	"""
 	Retrieves information about the service running on the given port.
 	This information is read from services.csv
 	"""
 
 	if os.path.isfile("services.csv"):
-		f: io.TextIOWrapper = open("services.csv")
-		line: str = f.readline()
+		f = open("services.csv")
+		line = f.readline()
 		while line != '':
 			if line.count(",") < 11:
 				line += f.readline()
@@ -281,8 +280,8 @@ if __name__ == "__main__":
 	parser.add_argument("-t", "--timeout", help="Timeout for SSL and WHOIS fetching and portscanning", type=int, default=5)
 	args = parser.parse_args()
 	
-	logger: Logger = Logger(enabled=args.no_logging == None, color=args.no_color == None)
-	dumper: Dumper = Dumper(args.host)
+	logger = Logger(enabled=args.no_logging == None, color=args.no_color == None)
+	dumper = Dumper(args.host)
 	
 	dumper.attach_logger(logger)
 
