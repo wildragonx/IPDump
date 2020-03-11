@@ -36,10 +36,10 @@ class Logger:
 	Provides formatting for the custom logger
 	"""
 
-	COLOR_DEFAULT: str = "\033[0m"
-	COLOR_ERROR: str = "\033[91m"
-	COLOR_SUCCESS: str = "\033[92m"
-	COLOR_INFO: str = "\033[93m"
+	COLOR_DEFAULT  = "\033[0m"
+	COLOR_ERROR    = "\033[91m"
+	COLOR_SUCCESS  = "\033[92m"
+	COLOR_INFO     = "\033[93m"
 
 
 	def __init__(self, enabled=True, color=True):
@@ -213,14 +213,14 @@ class Dumper:
 		Gets the open ports running on the target and prints them as a table.
 		"""
 		self.logger.info("Portscanning {} for open ports in the range {}-{}".format(self.target, start, end))
-		self.logger.no_status("+-------+------------------------------+-----------+%s+" % ("-" * 50))
-		self.logger.no_status("| %s | %s | %s | %s |" % ("Port".ljust(5), "Protocol".ljust(28), "Transport".ljust(9), "Description".ljust(48)))
-		self.logger.no_status("+-------+------------------------------+-----------+%s+" % ("-" * 50))
+		self.logger.no_status("+-------+------------------------------+-----------+{}+".format("-" * 50))
+		self.logger.no_status("| {} | {} | {} | {} |".format("Port".ljust(5), "Protocol".ljust(28), "Transport".ljust(9), "Description".ljust(48)))
+		self.logger.no_status("+-------+------------------------------+-----------+{}+".format("-" * 50))
 		with ThreadPoolExecutor(max_workers=workers) as executor:
 			for port in range(start, end+1):
 				executor.submit(self.__check_port, port, callback, timeout)
 
-		self.logger.no_status("+-------+------------------------------+-----------+%s+" % ("-" * 50))
+		self.logger.no_status("+-------+------------------------------+-----------+{}+" .format("-" * 50))
 		self.logger.success("Portscan finished")
 
 
@@ -229,7 +229,7 @@ def print_dict(d):
 	Prints the given dictionary in key-value pairs
 	"""
 	for k, v in d.items():
-		print("%-20s: %s" % (k, v))
+		print("{}: {}".format(k.ljust(20), v))
 
 
 def find_service(port_no):
@@ -262,7 +262,7 @@ def print_port_info(portinfo: PortInfo):
 	service_name = (portinfo.service_name[:25] + "..." if len(portinfo.service_name) >= 28 else portinfo.service_name).ljust(28)
 	service_transport = portinfo.service_transport.ljust(9)
 	service_desc = (portinfo.service_desc[:45] + "..." if len(portinfo.service_desc) >= 48 else portinfo.service_desc).ljust(48)
-	print("    | %s | %s | %s | %s |" % (port, service_name, service_transport, service_desc))
+	print("    | {} | {} | {} | {} |".format(port, service_name, service_transport, service_desc))
 
 if __name__ == "__main__":
 	
